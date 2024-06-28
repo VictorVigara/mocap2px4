@@ -42,6 +42,7 @@ class MocapConversionNode(Node):
         self.ekf_pose_publisher = self.create_publisher(PoseStamped, '/px4_ekf_pose', 10)
         self.mocap_initial_publisher = self.create_publisher(PoseStamped, '/mocap_initial', 10)
         self.mocap_publisher = self.create_publisher(PoseStamped, '/mocap_original', 10)
+        self.pipe_publisher = self.create_publisher(PoseStamped, '/pipe_initial', 10)
 
         self.tf_broadcaster = TransformBroadcaster(self)
 
@@ -58,7 +59,32 @@ class MocapConversionNode(Node):
                 rb_pose = rb.pose
                 rb_q = [rb_pose.orientation.x, rb_pose.orientation.y, rb_pose.orientation.z, rb_pose.orientation.w]
                 rb_p = [rb_pose.position.x, rb_pose.position.y, rb_pose.position.z]
-                break
+            if rb.rigid_body_name == '50': 
+                
+                pipe_pose = rb.pose
+                pipe_q = [pipe_pose.orientation.x, pipe_pose.orientation.y, pipe_pose.orientation.z, pipe_pose.orientation.w]
+                pipe_p = [pipe_pose.position.x, pipe_pose.position.y, pipe_pose.position.z]
+                #print(f"Receiving pipe optitrack: {pipe_p}")
+
+                if self.initial_position is not None: 
+                    #print(f"Adjusting pipe optitrack")
+                    pipe_q_wxyz = [pipe_q[-1], pipe_q[0], pipe_q[1], pipe_q[2]]
+                    pos_adjusted, quat_adjusted = self.adjust_initial_position_and_orientation(pipe_p, pipe_q_wxyz)
+                    opt_pipe_pose = PoseStamped()
+                    opt_pipe_pose.header.stamp = self.get_clock().now().to_msg()
+                    opt_pipe_pose.header.frame_id = "world"
+
+                    opt_pipe_pose.pose.position.x = pos_adjusted[0]
+                    opt_pipe_pose.pose.position.y = pos_adjusted[1]
+                    opt_pipe_pose.pose.position.z = pos_adjusted[2]
+
+                    opt_pipe_pose.pose.orientation.w = quat_adjusted[0]
+                    opt_pipe_pose.pose.orientation.x = quat_adjusted[1]
+                    opt_pipe_pose.pose.orientation.y = quat_adjusted[2]
+                    opt_pipe_pose.pose.orientation.z = quat_adjusted[3]
+
+                    self.pipe_publisher.publish(opt_pipe_pose)
+
 
 
         if self.initial_position is None and self.initial_orientation_inv is None and rb_pose != None:
