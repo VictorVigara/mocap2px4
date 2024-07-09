@@ -55,12 +55,14 @@ class MocapConversionNode(Node):
         rb_p = None
         rb_q = None
         for rb in rbs: 
-            if rb.rigid_body_name == '47': 
+            if rb.rigid_body_name == '39': 
+                print(f"Reading 39")
                 rb_pose = rb.pose
                 rb_q = [rb_pose.orientation.x, rb_pose.orientation.y, rb_pose.orientation.z, rb_pose.orientation.w]
                 rb_p = [rb_pose.position.x, rb_pose.position.y, rb_pose.position.z]
+                print(f"rb_pose: {rb_pose}")
             if rb.rigid_body_name == '50': 
-                
+                print(f"Reading 50")
                 pipe_pose = rb.pose
                 pipe_q = [pipe_pose.orientation.x, pipe_pose.orientation.y, pipe_pose.orientation.z, pipe_pose.orientation.w]
                 pipe_p = [pipe_pose.position.x, pipe_pose.position.y, pipe_pose.position.z]
@@ -88,13 +90,14 @@ class MocapConversionNode(Node):
 
 
         if self.initial_position is None and self.initial_orientation_inv is None and rb_pose != None:
-
-            self.initial_position = np.array([rb_p[0], rb_p[1], 0.0])
+            print(f"Initial pose: {self.initial_position}")
+            self.initial_position = np.array([rb_p[0], rb_p[1], 0.0])   
             self.initial_orientation = R.from_quat(rb_q)    #xyzw
 
             self.initial_orientation_inv = self.initial_orientation.inv()
         
         if rb_pose != None:
+            print(f"Publishing mocap original: {rb_p}")
             opt_pose = PoseStamped()
             opt_pose.header.stamp = self.get_clock().now().to_msg()
             opt_pose.header.frame_id = "world"
@@ -150,7 +153,7 @@ class MocapConversionNode(Node):
         )
 
         # Fill odom msg with initial pose
-
+        print(f"Publishing mocap initial: {pos_adjusted}")
         opt_pose = PoseStamped()
         opt_pose.header.stamp = self.get_clock().now().to_msg()
         opt_pose.header.frame_id = "world"
