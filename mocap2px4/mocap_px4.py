@@ -43,6 +43,8 @@ class MocapConversionNode(Node):
         self.mocap_initial_publisher = self.create_publisher(PoseStamped, '/mocap_initial', 10)
         self.mocap_publisher = self.create_publisher(PoseStamped, '/mocap_original', 10)
         self.pipe_publisher = self.create_publisher(PoseStamped, '/pipe_initial', 10)
+        self.glass_0_publisher = self.create_publisher(PoseStamped, '/glass_0_initial', 10)
+        self.glass_1_publisher = self.create_publisher(PoseStamped, '/glass_1_initial', 10)
 
         self.tf_broadcaster = TransformBroadcaster(self)
 
@@ -56,13 +58,12 @@ class MocapConversionNode(Node):
         rb_q = None
         for rb in rbs: 
             if rb.rigid_body_name == '39': 
-                print(f"Reading 39")
+                
                 rb_pose = rb.pose
                 rb_q = [rb_pose.orientation.x, rb_pose.orientation.y, rb_pose.orientation.z, rb_pose.orientation.w]
                 rb_p = [rb_pose.position.x, rb_pose.position.y, rb_pose.position.z]
                 print(f"rb_pose: {rb_pose}")
             if rb.rigid_body_name == '50': 
-                print(f"Reading 50")
                 pipe_pose = rb.pose
                 pipe_q = [pipe_pose.orientation.x, pipe_pose.orientation.y, pipe_pose.orientation.z, pipe_pose.orientation.w]
                 pipe_p = [pipe_pose.position.x, pipe_pose.position.y, pipe_pose.position.z]
@@ -84,8 +85,60 @@ class MocapConversionNode(Node):
                     opt_pipe_pose.pose.orientation.x = quat_adjusted[1]
                     opt_pipe_pose.pose.orientation.y = quat_adjusted[2]
                     opt_pipe_pose.pose.orientation.z = quat_adjusted[3]
-
+                    print(f"Publishing pipe")
                     self.pipe_publisher.publish(opt_pipe_pose)
+            
+            if rb.rigid_body_name == '30': 
+                glass_0_pose = rb.pose
+                glass_0_q = [glass_0_pose.orientation.x, glass_0_pose.orientation.y, glass_0_pose.orientation.z, glass_0_pose.orientation.w]
+                glass_0_p = [glass_0_pose.position.x, glass_0_pose.position.y, glass_0_pose.position.z]
+                #print(f"Receiving pipe optitrack: {glass_0_p}")
+
+                if self.initial_position is not None: 
+                    #print(f"Adjusting pipe optitrack")
+                    glass_0_q_wxyz = [glass_0_q[-1], glass_0_q[0], glass_0_q[1], glass_0_q[2]]
+                    pos_adjusted, quat_adjusted = self.adjust_initial_position_and_orientation(glass_0_p, glass_0_q_wxyz)
+                    opt_glass_0_pose = PoseStamped()
+                    opt_glass_0_pose.header.stamp = self.get_clock().now().to_msg()
+                    opt_glass_0_pose.header.frame_id = "world"
+
+                    opt_glass_0_pose.pose.position.x = pos_adjusted[0]
+                    opt_glass_0_pose.pose.position.y = pos_adjusted[1]
+                    opt_glass_0_pose.pose.position.z = pos_adjusted[2]
+
+                    opt_glass_0_pose.pose.orientation.w = quat_adjusted[0]
+                    opt_glass_0_pose.pose.orientation.x = quat_adjusted[1]
+                    opt_glass_0_pose.pose.orientation.y = quat_adjusted[2]
+                    opt_glass_0_pose.pose.orientation.z = quat_adjusted[3]
+
+                    print(f"Publishing glass0")
+                    self.glass_0_publisher.publish(opt_glass_0_pose)
+
+            if rb.rigid_body_name == '31': 
+                print(f"Reading glass_1")
+                glass_1_pose = rb.pose
+                glass_1_q = [glass_1_pose.orientation.x, glass_1_pose.orientation.y, glass_1_pose.orientation.z, glass_1_pose.orientation.w]
+                glass_1_p = [glass_1_pose.position.x, glass_1_pose.position.y, glass_1_pose.position.z]
+                #print(f"Receiving pipe optitrack: {glass_1_p}")
+
+                if self.initial_position is not None: 
+                    #print(f"Adjusting pipe optitrack")
+                    glass_1_q_wxyz = [glass_1_q[-1], glass_1_q[0], glass_1_q[1], glass_1_q[2]]
+                    pos_adjusted, quat_adjusted = self.adjust_initial_position_and_orientation(glass_1_p, glass_1_q_wxyz)
+                    opt_glass_1_pose = PoseStamped()
+                    opt_glass_1_pose.header.stamp = self.get_clock().now().to_msg()
+                    opt_glass_1_pose.header.frame_id = "world"
+
+                    opt_glass_1_pose.pose.position.x = pos_adjusted[0]
+                    opt_glass_1_pose.pose.position.y = pos_adjusted[1]
+                    opt_glass_1_pose.pose.position.z = pos_adjusted[2]
+
+                    opt_glass_1_pose.pose.orientation.w = quat_adjusted[0]
+                    opt_glass_1_pose.pose.orientation.x = quat_adjusted[1]
+                    opt_glass_1_pose.pose.orientation.y = quat_adjusted[2]
+                    opt_glass_1_pose.pose.orientation.z = quat_adjusted[3]
+                    print(f"Publishing glass1")
+                    self.glass_1_publisher.publish(opt_glass_1_pose)
 
 
 
@@ -139,7 +192,7 @@ class MocapConversionNode(Node):
         pose_msg.pose.orientation = Quaternion(x=quaternion[0], y=quaternion[1], z=quaternion[2], w=quaternion[3])
         
         self.ekf_pose_publisher.publish(pose_msg)
-
+        print(f"Publishing px4_ekf_pose")
         self.publish_transform(pose_msg)
 
     def convert_mocap_2_px4(self, pose_received, q_received):
